@@ -92,8 +92,10 @@
 
   /* Recipe cards */
   .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-  .recipe-card { background: var(--card); border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.05); transition: transform .15s; }
+  .recipe-card { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05); transition: transform .15s; }
   .recipe-card:hover { transform: translateY(-2px); }
+  .recipe-card .recipe-img { width: 100%; height: 180px; object-fit: cover; display: block; }
+  .recipe-card .recipe-body { padding: 14px 18px 18px; }
   .recipe-card h3 { font-size: 1.05em; margin-bottom: 6px; }
   .recipe-meta { display: flex; gap: 10px; margin-bottom: 8px; font-size: .8em; color: var(--muted); }
   .recipe-ingredients { font-size: .85em; color: #555; margin-bottom: 8px; }
@@ -490,6 +492,27 @@ function tItem(key) {
   if (!entry) return key;
   return entry[currentLang] || entry['zh'] || key;
 }
+
+const recipeImages = {
+  1: 'https://plus.unsplash.com/premium_photo-1663840225455-1f385f41bf9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8Y2hpYSUyMHNlZWQlMjBwdWRkaW5nfGVufDB8fHx8MTc3MzQ1Mzc4MXww&ixlib=rb-4.1.0&q=80&w=400',
+  2: 'https://plus.unsplash.com/premium_photo-1693267085608-aa50fa091f6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8YmVycnklMjB5b2d1cnQlMjBzbW9vdGhpZXxlbnwwfHx8fDE3NzM0NTM3ODJ8MA&ixlib=rb-4.1.0&q=80&w=400',
+  3: 'https://plus.unsplash.com/premium_photo-1676106623583-e68dd66683e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8YXZvY2FkbyUyMHRvYXN0fGVufDB8fHx8MTc3MzQ1Mzg2NXww&ixlib=rb-4.1.0&q=80&w=400',
+  4: 'https://plus.unsplash.com/premium_photo-1663840135696-9c1e30c7ab0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8YmFrZWQlMjBvYXRtZWFsJTIwZnJ1aXQlMjBicmVha2Zhc3R8ZW58MHx8fHwxNzczNDUzOTA3fDA&ixlib=rb-4.1.0&q=80&w=400',
+  5: 'https://plus.unsplash.com/premium_photo-1668615553414-054aeca71e63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8b2F0bWVhbCUyMHBvcnJpZGdlJTIwYnJlYWtmYXN0JTIwYm93bHxlbnwwfHx8fDE3NzM0NTM4Njh8MA&ixlib=rb-4.1.0&q=80&w=400',
+  6: 'https://plus.unsplash.com/premium_photo-1694935556870-30f4e6b3f997?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8Z3JlZW4lMjBzbW9vdGhpZSUyMGJvd2x8ZW58MHx8fHwxNzczNDUzODY5fDA&ixlib=rb-4.1.0&q=80&w=400',
+  7: 'https://plus.unsplash.com/premium_photo-1667115139943-96685c76c705?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8YmVycnklMjBvYXQlMjBtdWZmaW5zfGVufDB8fHx8MTc3MzQ1Mzg3MXww&ixlib=rb-4.1.0&q=80&w=400',
+  8: 'https://plus.unsplash.com/premium_photo-1695460928876-08e5cb9fc08d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8dHVuYSUyMGNvcm4lMjBzYWxhZHxlbnwwfHx8fDE3NzM0NTM4NzJ8MA&ixlib=rb-4.1.0&q=80&w=400',
+  9: 'https://plus.unsplash.com/premium_photo-1723126209081-d63fb34715e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8ZHJhZ29uJTIwZnJ1aXQlMjBzbW9vdGhpZSUyMHBpbmt8ZW58MHx8fHwxNzczNDUzODc0fDA&ixlib=rb-4.1.0&q=80&w=400',
+  10: 'https://plus.unsplash.com/premium_photo-1661265946882-e2a01db641d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8bXVzaHJvb20lMjBwb3JrJTIwcmljZSUyMGNvbmdlZXxlbnwwfHx8fDE3NzM0NTM4NzV8MA&ixlib=rb-4.1.0&q=80&w=400',
+  11: 'https://plus.unsplash.com/premium_photo-1668615553223-20bf98207881?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8b3Zlcm5pZ2h0JTIwb2F0cyUyMGphcnxlbnwwfHx8fDE3NzM0NTM4Nzd8MA&ixlib=rb-4.1.0&q=80&w=400',
+  12: 'https://plus.unsplash.com/premium_photo-1663840278090-32c56b18e075?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8YWNhaSUyMGJvd2x8ZW58MHx8fHwxNzczNDUzODc4fDA&ixlib=rb-4.1.0&q=80&w=400',
+  13: 'https://images.unsplash.com/photo-1730613998518-6ae2c364dc3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8M3x8c2F2b3J5JTIwb2F0cyUyMGJvd2wlMjBlZ2d8ZW58MHx8fHwxNzczNDUzOTM0fDA&ixlib=rb-4.1.0&q=80&w=400',
+  14: 'https://plus.unsplash.com/premium_photo-1695140990492-844fc6c94354?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8eW9ndXJ0JTIwZnJ1aXQlMjB0b2FzdCUyMHBsYXR0ZXJ8ZW58MHx8fHwxNzczNDUzODgwfDA&ixlib=rb-4.1.0&q=80&w=400',
+  15: 'https://plus.unsplash.com/premium_photo-1693086420916-557791f0c220?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8Y2hlZXNlJTIwZWdnJTIwYmFrZWQlMjBicmVha2Zhc3R8ZW58MHx8fHwxNzczNDUzOTEyfDA&ixlib=rb-4.1.0&q=80&w=400',
+  16: 'https://plus.unsplash.com/premium_photo-1739988546801-1a4f50ba1118?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8c3BpbmFjaCUyMGdyaWxsZWQlMjBjaGVlc2UlMjBzYW5kd2ljaHxlbnwwfHx8fDE3NzM0NTM4ODJ8MA&ixlib=rb-4.1.0&q=80&w=400',
+  17: 'https://plus.unsplash.com/premium_photo-1663840135700-4f0fcacf7664?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8aG9tZW1hZGUlMjBncmFub2xhJTIwYm93bHxlbnwwfHx8fDE3NzM0NTM4ODR8MA&ixlib=rb-4.1.0&q=80&w=400',
+  18: 'https://images.unsplash.com/photo-1585285072892-a52481577926?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxzZWFyY2h8Mnx8amFwYW5lc2UlMjB3YWZ1JTIwc2FsYWR8ZW58MHx8fHwxNzczNDUzOTM1fDA&ixlib=rb-4.1.0&q=80&w=400',
+};
 
 const recipes = [
   {
@@ -1249,14 +1272,17 @@ function renderRecipes(filter = 'all') {
 
   document.getElementById('recipeGrid').innerHTML = list.map(r => `
     <div class="recipe-card" id="recipe-${r.id}">
-      <h3>${L(r, 'name')}</h3>
-      <div class="recipe-meta">
-        ${typeLabel(r.type)}
-        <span>⏱ ${r.time}${t('minutes')}</span>
+      ${recipeImages[r.id] ? `<img class="recipe-img" src="${recipeImages[r.id]}" alt="${L(r, 'name')}" loading="lazy" onerror="this.style.display='none'">` : ''}
+      <div class="recipe-body">
+        <h3>${L(r, 'name')}</h3>
+        <div class="recipe-meta">
+          ${typeLabel(r.type)}
+          <span>⏱ ${r.time}${t('minutes')}</span>
+        </div>
+        <div class="recipe-ingredients"><strong>${t('ingredients')}：</strong>${L(r, 'ingredients')}</div>
+        <button class="recipe-toggle" onclick="toggleRecipe(${r.id})">${t('expand')}</button>
+        <div class="recipe-steps"><strong>${t('steps')}：</strong>\n${L(r, 'steps')}\n\n<em>${t('tip')} ${L(r, 'prepNote')}</em></div>
       </div>
-      <div class="recipe-ingredients"><strong>${t('ingredients')}：</strong>${L(r, 'ingredients')}</div>
-      <button class="recipe-toggle" onclick="toggleRecipe(${r.id})">${t('expand')}</button>
-      <div class="recipe-steps"><strong>${t('steps')}：</strong>\n${L(r, 'steps')}\n\n<em>${t('tip')} ${L(r, 'prepNote')}</em></div>
     </div>
   `).join('');
 }
