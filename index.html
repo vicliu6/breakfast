@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>早餐規劃工具 | Breakfast Planner | Meal Planner</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #fff;
+    --accent: #e07a3a;
+    --accent2: #4a9e6e;
+    --accent3: #3a7bd5;
+    --text: #333;
+    --muted: #888;
+    --border: #e8e2d9;
+    --tag-starch: #f5deb3;
+    --tag-protein: #fbc2c2;
+    --tag-fiber: #b8e6c8;
+    --tag-drink: #b8d4f0;
+    --prep: #fff3e0;
+    --fresh: #e8f5e9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  h1 { text-align: center; font-size: 2em; margin: 20px 0 5px; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 25px; font-size: 0.95em; }
+
+  /* Language switcher */
+  .lang-bar { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: 10px; }
+  .lang-btn { padding: 5px 14px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--card); cursor: pointer; font-size: .85em; font-family: inherit; transition: all .15s; }
+  .lang-btn:hover { border-color: var(--accent); }
+  .lang-btn.active { border-color: var(--accent); background: #fef0e6; font-weight: 600; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab { padding: 10px 22px; cursor: pointer; border: none; background: none; font-size: 1em; color: var(--muted); border-bottom: 3px solid transparent; transition: all .2s; font-family: inherit; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Generate section */
+  .gen-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+  .btn { padding: 12px 28px; border: none; border-radius: 10px; font-size: 1em; cursor: pointer; font-weight: 600; transition: all .2s; font-family: inherit; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #c0612a); color: #fff; box-shadow: 0 3px 12px rgba(224,122,58,.3); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(224,122,58,.4); }
+  .btn-secondary { background: var(--card); border: 2px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-green { background: linear-gradient(135deg, var(--accent2), #3a8a5e); color: #fff; }
+  .btn-green:hover { transform: translateY(-1px); }
+  .btn-sm { padding: 6px 14px; font-size: .85em; border-radius: 6px; }
+
+  /* Filter chips */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--card); cursor: pointer; font-size: .85em; transition: all .15s; user-select: none; }
+  .chip.active { border-color: var(--accent); background: #fef0e6; }
+  .chip:hover { border-color: var(--accent); }
+
+  /* Meal cards */
+  .meals-grid { display: grid; gap: 16px; }
+  .meal-card { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.05); border-left: 5px solid var(--accent); }
+  .meal-card h3 { font-size: 1.15em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .meal-num { background: var(--accent); color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .85em; flex-shrink: 0; }
+  .meal-type { font-size: .75em; padding: 2px 10px; border-radius: 10px; font-weight: 500; }
+  .type-prepped { background: var(--prep); color: #b36b00; }
+  .type-fresh { background: var(--fresh); color: #2e7d32; }
+  .type-quick { background: #e3f2fd; color: #1565c0; }
+  .meal-items { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .item-tag { padding: 3px 10px; border-radius: 6px; font-size: .82em; }
+  .tag-starch { background: var(--tag-starch); }
+  .tag-protein { background: var(--tag-protein); }
+  .tag-fiber { background: var(--tag-fiber); }
+  .tag-drink { background: var(--tag-drink); }
+  .meal-detail { font-size: .9em; color: #555; margin-top: 8px; }
+  .meal-detail summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+  .meal-detail .content { margin-top: 8px; padding: 10px; background: #faf7f2; border-radius: 8px; white-space: pre-line; }
+  .meal-card .swap-btn { float: right; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: .8em; color: var(--muted); }
+  .meal-card .swap-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Shopping list */
+  .shopping-section { margin-top: 24px; }
+  .shopping-section h2 { font-size: 1.3em; margin-bottom: 12px; }
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .shop-cat { background: var(--card); border-radius: 10px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.04); }
+  .shop-cat h4 { font-size: .95em; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .shop-cat ul { list-style: none; }
+  .shop-cat li { padding: 3px 0; font-size: .9em; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .shop-cat li::before { content: "☐"; color: var(--muted); }
+  .shop-cat li.checked::before { content: "☑"; color: var(--accent2); }
+
+  /* Recipe cards */
+  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .recipe-card { background: var(--card); border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.05); transition: transform .15s; }
+  .recipe-card:hover { transform: translateY(-2px); }
+  .recipe-card h3 { font-size: 1.05em; margin-bottom: 6px; }
+  .recipe-meta { display: flex; gap: 10px; margin-bottom: 8px; font-size: .8em; color: var(--muted); }
+  .recipe-ingredients { font-size: .85em; color: #555; margin-bottom: 8px; }
+  .recipe-steps { font-size: .85em; white-space: pre-line; display: none; padding-top: 8px; }
+  .recipe-card.expanded .recipe-steps { display: block; }
+  .recipe-toggle { background: none; border: none; color: var(--accent); cursor: pointer; font-size: .85em; font-family: inherit; }
+
+  /* Mix and match */
+  .mix-section { margin-bottom: 20px; }
+  .mix-section h3 { font-size: 1em; margin-bottom: 8px; padding: 8px 12px; border-radius: 8px; }
+  .mix-section h3.starch-h { background: var(--tag-starch); }
+  .mix-section h3.protein-h { background: var(--tag-protein); }
+  .mix-section h3.fiber-h { background: var(--tag-fiber); }
+  .mix-section h3.drink-h { background: var(--tag-drink); }
+  .mix-items { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mix-item { padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card); cursor: pointer; font-size: .9em; transition: all .15s; user-select: none; }
+  .mix-item:hover { border-color: var(--accent); }
+  .mix-item.selected { border-color: var(--accent); background: #fef0e6; font-weight: 500; }
+
+  /* Days selector */
+  .days-selector { display: flex; gap: 6px; align-items: center; }
+  .days-selector label { font-size: .9em; }
+  .days-selector select { padding: 6px 10px; border-radius: 6px; border: 1.5px solid var(--border); font-family: inherit; }
+
+  /* Print */
+  @media print {
+    .tabs, .gen-controls, .btn, .swap-btn, .filters, .chip, .recipe-toggle, .lang-bar { display: none !important; }
+    .tab-content { display: block !important; }
+    body { background: #fff; }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    h1 { font-size: 1.5em; }
+    .btn { padding: 10px 18px; font-size: .9em; }
+    .recipe-grid { grid-template-columns: 1fr; }
+  }
+
+  .week-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .day-label { font-weight: 600; color: var(--accent); font-size: .9em; margin-bottom: 6px; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 3em; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('fil')">Filipino</button>
+  </div>
+
+  <h1 id="mainTitle">🍳 早餐規劃工具</h1>
+  <p class="subtitle" id="mainSubtitle">一鍵生成健康早餐組合 ── 支援預製與現做方案</p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="generate" id="tabGenerate">🎲 一鍵生成</button>
+    <button class="tab" data-tab="recipes" id="tabRecipes">📖 食譜庫</button>
+    <button class="tab" data-tab="mix" id="tabMix">🥗 自由搭配</button>
+    <button class="tab" data-tab="shopping" id="tabShopping">🛒 備料清單</button>
+  </div>
+
+  <!-- Tab 1: Generate -->
+  <div id="generate" class="tab-content active">
+    <div class="gen-controls">
+      <div class="days-selector">
+        <label id="labelDays">生成天數：</label>
+        <select id="dayCount">
+          <option value="5" selected id="opt5">5 天</option>
+          <option value="3" id="opt3">3 天</option>
+          <option value="7" id="opt7">7 天</option>
+        </select>
+      </div>
+      <div class="filters">
+        <span class="chip active" data-filter="all" id="filterAll">全部</span>
+        <span class="chip" data-filter="prepped" id="filterPrepped">可預製</span>
+        <span class="chip" data-filter="fresh" id="filterFresh">現做</span>
+        <span class="chip" data-filter="quick" id="filterQuick">超快速（5分鐘內）</span>
+      </div>
+      <button class="btn btn-primary" onclick="generate()" id="btnGenerate">🎲 一鍵生成</button>
+      <button class="btn btn-secondary" onclick="exportText()" id="btnExport">📋 複製文字</button>
+    </div>
+    <div id="mealsOutput">
+      <div class="empty-state">
+        <div class="icon">🥣</div>
+        <p id="emptyGenerate">點擊「一鍵生成」來產生早餐組合</p>
+      </div>
+    </div>
+    <div id="shoppingOutput"></div>
+  </div>
+
+  <!-- Tab 2: Recipes -->
+  <div id="recipes" class="tab-content">
+    <div class="filters" style="margin-bottom:16px;">
+      <span class="chip active" data-rfilter="all" id="rfilterAll">全部</span>
+      <span class="chip" data-rfilter="prepped" id="rfilterPrepped">可預製</span>
+      <span class="chip" data-rfilter="fresh" id="rfilterFresh">需現做</span>
+      <span class="chip" data-rfilter="quick" id="rfilterQuick">超快速</span>
+    </div>
+    <div id="recipeGrid" class="recipe-grid"></div>
+  </div>
+
+  <!-- Tab 3: Mix and Match -->
+  <div id="mix" class="tab-content">
+    <p style="margin-bottom:16px;color:var(--muted);" id="mixDesc">自由勾選食材，系統自動生成備料清單。</p>
+    <div class="mix-section">
+      <h3 class="starch-h" id="mixStarchTitle">🍠 澱粉類</h3>
+      <div class="mix-items" id="mixStarch"></div>
+    </div>
+    <div class="mix-section">
+      <h3 class="protein-h" id="mixProteinTitle">🥚 蛋白質類</h3>
+      <div class="mix-items" id="mixProtein"></div>
+    </div>
+    <div class="mix-section">
+      <h3 class="fiber-h" id="mixFiberTitle">🥬 纖維類</h3>
+      <div class="mix-items" id="mixFiber"></div>
+    </div>
+    <div class="mix-section">
+      <h3 class="drink-h" id="mixDrinkTitle">🥛 飲品類</h3>
+      <div class="mix-items" id="mixDrink"></div>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-green" onclick="generateMixList()" id="btnMixGen">📝 生成備料清單</button>
+    </div>
+    <div id="mixShoppingOutput" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- Tab 4: Shopping -->
+  <div id="shopping" class="tab-content">
+    <p style="margin-bottom:16px;color:var(--muted);" id="shopDesc">先在「一鍵生成」或「自由搭配」產生組合後，這裡會彙整完整備料清單。</p>
+    <div id="masterShopping">
+      <div class="empty-state">
+        <div class="icon">🛒</div>
+        <p id="emptyShopping">尚無備料清單，請先生成早餐組合</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ i18n DATA ============
+let currentLang = 'zh';
+
+const UI = {
+  zh: {
+    title: '🍳 早餐規劃工具',
+    subtitle: '一鍵生成健康早餐組合 ── 支援預製與現做方案',
+    tabGenerate: '🎲 一鍵生成',
+    tabRecipes: '📖 食譜庫',
+    tabMix: '🥗 自由搭配',
+    tabShopping: '🛒 備料清單',
+    labelDays: '生成天數：',
+    opt5: '5 天', opt3: '3 天', opt7: '7 天',
+    filterAll: '全部', filterPrepped: '可預製', filterFresh: '現做', filterQuick: '超快速（5分鐘內）',
+    btnGenerate: '🎲 一鍵生成',
+    btnExport: '📋 複製文字',
+    emptyGenerate: '點擊「一鍵生成」來產生早餐組合',
+    rfilterAll: '全部', rfilterPrepped: '可預製', rfilterFresh: '需現做', rfilterQuick: '超快速',
+    mixDesc: '自由勾選食材，系統自動生成備料清單。',
+    mixStarchTitle: '🍠 澱粉類', mixProteinTitle: '🥚 蛋白質類', mixFiberTitle: '🥬 纖維類', mixDrinkTitle: '🥛 飲品類',
+    btnMixGen: '📝 生成備料清單',
+    shopDesc: '先在「一鍵生成」或「自由搭配」產生組合後，這裡會彙整完整備料清單。',
+    emptyShopping: '尚無備料清單，請先生成早餐組合',
+    typePrepped: '可預製', typeFresh: '需現做', typeQuick: '超快速',
+    minutes: '分鐘',
+    swap: '🔄 換一個',
+    viewSteps: '查看做法',
+    ingredients: '材料',
+    steps: '步驟',
+    note: '備註',
+    expand: '▶ 展開做法',
+    collapse: '▼ 收起',
+    shoppingTitle: '🛒 備料清單',
+    exportTitle: '🍳 本週早餐計畫',
+    alertNoMeals: '請先生成早餐組合',
+    alertNoItems: '請先選擇食材',
+    copied: '✅ 已複製！',
+    noMatch: '沒有符合篩選條件的早餐',
+    emptyShopShort: '尚無備料清單',
+    dayNames: ['週一','週二','週三','週四','週五','週六','週日'],
+    dayN: '第{n}天',
+    tip: '💡',
+    shopCategories: {
+      '蛋奶豆製品': '蛋奶豆製品',
+      '蔬菜水果': '蔬菜水果',
+      '主食穀物': '主食穀物',
+      '肉類蛋白': '肉類蛋白',
+      '調味料醬料': '調味料醬料',
+      '堅果種子': '堅果種子',
+      '其他': '其他',
+    },
+  },
+  en: {
+    title: '🍳 Breakfast Planner',
+    subtitle: 'One-click healthy breakfast combos — meal prep & fresh options',
+    tabGenerate: '🎲 Generate',
+    tabRecipes: '📖 Recipes',
+    tabMix: '🥗 Mix & Match',
+    tabShopping: '🛒 Shopping List',
+    labelDays: 'Days: ',
+    opt5: '5 days', opt3: '3 days', opt7: '7 days',
+    filterAll: 'All', filterPrepped: 'Meal Prep', filterFresh: 'Fresh', filterQuick: 'Quick (≤5 min)',
+    btnGenerate: '🎲 Generate',
+    btnExport: '📋 Copy Text',
+    emptyGenerate: 'Click "Generate" to create breakfast combos',
+    rfilterAll: 'All', rfilterPrepped: 'Meal Prep', rfilterFresh: 'Fresh Cook', rfilterQuick: 'Quick',
+    mixDesc: 'Select ingredients freely, auto-generate shopping list.',
+    mixStarchTitle: '🍠 Starches', mixProteinTitle: '🥚 Proteins', mixFiberTitle: '🥬 Fiber / Fruits', mixDrinkTitle: '🥛 Drinks',
+    btnMixGen: '📝 Generate Shopping List',
+    shopDesc: 'Generate combos in "Generate" or "Mix & Match" first, then view the full shopping list here.',
+    emptyShopping: 'No shopping list yet — generate breakfast combos first',
+    typePrepped: 'Meal Prep', typeFresh: 'Fresh Cook', typeQuick: 'Quick',
+    minutes: 'min',
+    swap: '🔄 Swap',
+    viewSteps: 'View steps',
+    ingredients: 'Ingredients',
+    steps: 'Steps',
+    note: 'Note',
+    expand: '▶ Show steps',
+    collapse: '▼ Hide',
+    shoppingTitle: '🛒 Shopping List',
+    exportTitle: '🍳 Weekly Breakfast Plan',
+    alertNoMeals: 'Please generate breakfast combos first',
+    alertNoItems: 'Please select ingredients first',
+    copied: '✅ Copied!',
+    noMatch: 'No breakfasts match the current filter',
+    emptyShopShort: 'No shopping list',
+    dayNames: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    dayN: 'Day {n}',
+    tip: '💡',
+    shopCategories: {
+      '蛋奶豆製品': 'Dairy, Eggs & Soy',
+      '蔬菜水果': 'Fruits & Vegetables',
+      '主食穀物': 'Grains & Starches',
+      '肉類蛋白': 'Meat & Protein',
+      '調味料醬料': 'Seasonings & Sauces',
+      '堅果種子': 'Nuts & Seeds',
+      '其他': 'Others',
+    },
+  },
+  fil: {
+    title: '🍳 Plano sa Almusal',
+    subtitle: 'Isang click para sa malusog na almusal — prepped at fresh na opsyon',
+    tabGenerate: '🎲 I-generate',
+    tabRecipes: '📖 Mga Resipe',
+    tabMix: '🥗 Mix & Match',
+    tabShopping: '🛒 Listahan ng Bilihin',
+    labelDays: 'Araw: ',
+    opt5: '5 araw', opt3: '3 araw', opt7: '7 araw',
+    filterAll: 'Lahat', filterPrepped: 'Na-prep na', filterFresh: 'Sariwang luto', filterQuick: 'Mabilis (≤5 min)',
+    btnGenerate: '🎲 I-generate',
+    btnExport: '📋 Kopyahin',
+    emptyGenerate: 'I-click ang "I-generate" para gumawa ng almusal combo',
+    rfilterAll: 'Lahat', rfilterPrepped: 'Na-prep na', rfilterFresh: 'Sariwang luto', rfilterQuick: 'Mabilis',
+    mixDesc: 'Pumili ng mga sangkap, awtomatikong gagawa ng listahan ng bilihin.',
+    mixStarchTitle: '🍠 Mga Starch', mixProteinTitle: '🥚 Mga Protina', mixFiberTitle: '🥬 Fiber / Prutas', mixDrinkTitle: '🥛 Mga Inumin',
+    btnMixGen: '📝 Gumawa ng Listahan ng Bilihin',
+    shopDesc: 'Gumawa muna ng combo sa "I-generate" o "Mix & Match", pagkatapos tingnan ang buong listahan dito.',
+    emptyShopping: 'Wala pang listahan ng bilihin — gumawa muna ng almusal combo',
+    typePrepped: 'Na-prep na', typeFresh: 'Sariwang luto', typeQuick: 'Mabilis',
+    minutes: 'min',
+    swap: '🔄 Palitan',
+    viewSteps: 'Tingnan ang mga hakbang',
+    ingredients: 'Mga Sangkap',
+    steps: 'Mga Hakbang',
+    note: 'Tala',
+    expand: '▶ Ipakita ang hakbang',
+    collapse: '▼ Itago',
+    shoppingTitle: '🛒 Listahan ng Bilihin',
+    exportTitle: '🍳 Lingguhang Plano sa Almusal',
+    alertNoMeals: 'Gumawa muna ng almusal combo',
+    alertNoItems: 'Pumili muna ng mga sangkap',
+    copied: '✅ Nakopya na!',
+    noMatch: 'Walang almusal na tumutugma sa filter',
+    emptyShopShort: 'Wala pang listahan ng bilihin',
+    dayNames: ['Lun','Mar','Miy','Huw','Biy','Sab','Lin'],
+    dayN: 'Araw {n}',
+    tip: '💡',
+    shopCategories: {
+      '蛋奶豆製品': 'Gatas, Itlog at Tokwa',
+      '蔬菜水果': 'Prutas at Gulay',
+      '主食穀物': 'Butil at Starch',
+      '肉類蛋白': 'Karne at Protina',
+      '調味料醬料': 'Mga Pampalasa',
+      '堅果種子': 'Nuts at Buto',
+      '其他': 'Iba pa',
+    },
+  },
+};
+
+function t(key) { return UI[currentLang][key] || UI['zh'][key] || key; }
+function tCat(cat) { return (UI[currentLang].shopCategories || {})[cat] || cat; }
+
+// ============ RECIPE & FOOD DATA (trilingual) ============
+// Each item has: zh, en, fil for name/ingredients/steps/prepNote
+
+const mixItems = {
+  starch: [
+    { zh: '地瓜（200g，前日蒸好）', en: 'Sweet potato (200g, steamed day before)', fil: 'Kamote (200g, steamed kahapon)', key: '地瓜' },
+    { zh: '大燕麥片', en: 'Rolled oats', fil: 'Rolled oats', key: '燕麥片' },
+    { zh: '歐式雜糧麵包切片', en: 'Multigrain bread slices', fil: 'Multigrain na tinapay', key: '歐式雜糧麵包' },
+    { zh: '全麥吐司', en: 'Whole wheat toast', fil: 'Whole wheat na tinapay', key: '全麥吐司' },
+    { zh: '糙米飯', en: 'Brown rice', fil: 'Brown rice', key: '糙米飯' },
+  ],
+  protein: [
+    { zh: '水煮蛋／茶葉蛋', en: 'Boiled egg / tea egg', fil: 'Nilagang itlog / tea egg', key: '雞蛋' },
+    { zh: '無糖希臘式優格', en: 'Unsweetened Greek yogurt', fil: 'Greek yogurt na walang asukal', key: '希臘優格' },
+    { zh: '舒肥雞胸肉', en: 'Sous vide chicken breast', fil: 'Sous vide na dibdib ng manok', key: '舒肥雞胸肉' },
+    { zh: '水煮鮪魚罐頭', en: 'Canned tuna in water', fil: 'De-latang tuna sa tubig', key: '鮪魚罐頭' },
+    { zh: '嫩豆腐', en: 'Silken tofu', fil: 'Malambot na tokwa', key: '嫩豆腐' },
+  ],
+  fiber: [
+    { zh: '生菜沙拉＋油醋醬', en: 'Green salad + vinaigrette', fil: 'Green salad + vinaigrette', key: '生菜沙拉' },
+    { zh: '蘋果', en: 'Apple', fil: 'Mansanas', key: '蘋果' },
+    { zh: '芭樂', en: 'Guava', fil: 'Bayabas', key: '芭樂' },
+    { zh: '奇異果', en: 'Kiwi', fil: 'Kiwi', key: '奇異果' },
+    { zh: '香蕉', en: 'Banana', fil: 'Saging', key: '香蕉' },
+    { zh: '酪梨', en: 'Avocado', fil: 'Abokado', key: '酪梨' },
+    { zh: '莓果（冷凍）', en: 'Frozen berries', fil: 'Frozen berries', key: '冷凍莓果' },
+    { zh: '菠菜', en: 'Spinach', fil: 'Spinach (alugbati)', key: '菠菜' },
+  ],
+  drink: [
+    { zh: '無糖優酪乳', en: 'Unsweetened yogurt drink', fil: 'Yogurt drink na walang asukal', key: '優酪乳' },
+    { zh: '無糖豆漿（可加蜂蜜）', en: 'Unsweetened soy milk (honey optional)', fil: 'Soy milk na walang asukal (pwedeng dagdagan ng honey)', key: '豆漿' },
+    { zh: '牛奶', en: 'Milk', fil: 'Gatas', key: '牛奶' },
+  ],
+};
+
+// Shopping item translations
+const shopItemNames = {
+  '奇亞籽': { zh: '奇亞籽', en: 'Chia seeds', fil: 'Chia seeds' },
+  '蛋白粉': { zh: '蛋白粉', en: 'Protein powder', fil: 'Protein powder' },
+  '牛奶': { zh: '牛奶', en: 'Milk', fil: 'Gatas' },
+  '可可粉': { zh: '可可粉', en: 'Cocoa powder', fil: 'Cocoa powder' },
+  '蜂蜜': { zh: '蜂蜜', en: 'Honey', fil: 'Pulot-pukyutan' },
+  '冷凍莓果': { zh: '冷凍莓果', en: 'Frozen berries', fil: 'Frozen berries' },
+  '香蕉': { zh: '香蕉', en: 'Banana', fil: 'Saging' },
+  '希臘優格': { zh: '希臘優格', en: 'Greek yogurt', fil: 'Greek yogurt' },
+  '酪梨': { zh: '酪梨', en: 'Avocado', fil: 'Abokado' },
+  '全麥吐司': { zh: '全麥吐司', en: 'Whole wheat toast', fil: 'Whole wheat na tinapay' },
+  '檸檬': { zh: '檸檬', en: 'Lemon', fil: 'Limon' },
+  '鹽': { zh: '鹽', en: 'Salt', fil: 'Asin' },
+  '胡椒粉': { zh: '胡椒粉', en: 'Pepper', fil: 'Paminta' },
+  '燕麥片': { zh: '燕麥片', en: 'Rolled oats', fil: 'Rolled oats' },
+  '黑糖': { zh: '黑糖', en: 'Brown sugar', fil: 'Brown sugar' },
+  '泡打粉': { zh: '泡打粉', en: 'Baking powder', fil: 'Baking powder' },
+  '肉桂粉': { zh: '肉桂粉', en: 'Cinnamon', fil: 'Cinnamon' },
+  '杏仁片': { zh: '杏仁片', en: 'Sliced almonds', fil: 'Sliced almonds' },
+  '雞蛋': { zh: '雞蛋', en: 'Eggs', fil: 'Itlog' },
+  '椰子油': { zh: '椰子油', en: 'Coconut oil', fil: 'Langis ng niyog' },
+  '香草精': { zh: '香草精', en: 'Vanilla extract', fil: 'Vanilla extract' },
+  '桃子': { zh: '桃子', en: 'Peach', fil: 'Peach' },
+  '火龍果': { zh: '火龍果', en: 'Dragon fruit', fil: 'Dragon fruit' },
+  '菠菜': { zh: '菠菜', en: 'Spinach', fil: 'Spinach' },
+  '鳳梨': { zh: '鳳梨', en: 'Pineapple', fil: 'Pinya' },
+  '蘋果': { zh: '蘋果', en: 'Apple', fil: 'Mansanas' },
+  '奇異果': { zh: '奇異果', en: 'Kiwi', fil: 'Kiwi' },
+  '糙米飯': { zh: '糙米飯', en: 'Brown rice', fil: 'Brown rice' },
+  '肉末': { zh: '肉末', en: 'Ground meat', fil: 'Giniling na karne' },
+  '香菇': { zh: '香菇', en: 'Shiitake mushroom', fil: 'Shiitake mushroom' },
+  '青蔥': { zh: '青蔥', en: 'Green onion', fil: 'Sibuyas na mura' },
+  '白胡椒粉': { zh: '白胡椒粉', en: 'White pepper', fil: 'Puting paminta' },
+  '麻油': { zh: '麻油', en: 'Sesame oil', fil: 'Sesame oil' },
+  '堅果': { zh: '堅果', en: 'Mixed nuts', fil: 'Mixed nuts' },
+  '杏仁': { zh: '杏仁', en: 'Almonds', fil: 'Almonds' },
+  '鮪魚罐頭': { zh: '鮪魚罐頭', en: 'Canned tuna', fil: 'De-latang tuna' },
+  '玉米粒罐頭': { zh: '玉米粒罐頭', en: 'Canned corn', fil: 'De-latang mais' },
+  '起司片': { zh: '起司片', en: 'Cheese slices', fil: 'Cheese slices' },
+  '芭樂': { zh: '芭樂', en: 'Guava', fil: 'Bayabas' },
+  '橘子': { zh: '橘子', en: 'Orange', fil: 'Dalandan' },
+  '蔓越莓乾': { zh: '蔓越莓乾', en: 'Dried cranberries', fil: 'Dried cranberries' },
+  '洋蔥': { zh: '洋蔥', en: 'Onion', fil: 'Sibuyas' },
+  '黑胡椒鹽': { zh: '黑胡椒鹽', en: 'Black pepper salt', fil: 'Asin na may paminta' },
+  '南瓜籽': { zh: '南瓜籽', en: 'Pumpkin seeds', fil: 'Buto ng kalabasa' },
+  '果乾': { zh: '果乾', en: 'Dried fruit', fil: 'Dried fruit' },
+  '柚香和風醬': { zh: '柚香和風醬', en: 'Yuzu wafu dressing', fil: 'Yuzu wafu dressing' },
+  '嫩豆腐': { zh: '嫩豆腐', en: 'Silken tofu', fil: 'Malambot na tokwa' },
+  '香油': { zh: '香油', en: 'Sesame oil', fil: 'Sesame oil' },
+  '油醋醬': { zh: '油醋醬', en: 'Vinaigrette', fil: 'Vinaigrette' },
+  '地瓜': { zh: '地瓜', en: 'Sweet potato', fil: 'Kamote' },
+  '豆漿': { zh: '豆漿', en: 'Soy milk', fil: 'Soy milk' },
+  '歐式雜糧麵包': { zh: '歐式雜糧麵包', en: 'Multigrain bread', fil: 'Multigrain na tinapay' },
+  '舒肥雞胸肉': { zh: '舒肥雞胸肉', en: 'Sous vide chicken breast', fil: 'Sous vide na dibdib ng manok' },
+  '生菜沙拉': { zh: '生菜沙拉', en: 'Green salad', fil: 'Green salad' },
+  '茶葉蛋': { zh: '茶葉蛋', en: 'Tea egg', fil: 'Tea egg' },
+  '優酪乳': { zh: '優酪乳', en: 'Yogurt drink', fil: 'Yogurt drink' },
+  '燕麥粉': { zh: '燕麥粉', en: 'Oat flour', fil: 'Oat flour' },
+  '楓糖': { zh: '楓糖', en: 'Maple syrup', fil: 'Maple syrup' },
+};
+
+function tItem(key) {
+  const entry = shopItemNames[key];
+  if (!entry) return key;
+  return entry[currentLang] || entry['zh'] || key;
+}
+
+const recipes = [
+  {
+    id: 1, type: 'prepped', time: 5,
+    tags: { starch: [], protein: ['蛋白粉'], fiber: ['莓果'], drink: ['牛奶'] },
+    shopping: ['奇亞籽','蛋白粉','牛奶','可可粉','蜂蜜'],
+    zh: {
+      name: '奇亞籽布丁',
+      ingredients: '奇亞籽3茶匙、蛋白粉3茶匙、牛奶3/4杯、可可粉1茶匙、楓糖或蜂蜜1/2茶匙、鹽少許',
+      steps: '把所有材料混進碗裡\n蓋上蓋子或保鮮膜，冰入冰箱\n1小時後取出即可食用，可加莓果、堅果',
+      prepNote: '前一晚製作，隔日直接吃'
+    },
+    en: {
+      name: 'Chia Seed Pudding',
+      ingredients: '3 tsp chia seeds, 3 tsp protein powder, 3/4 cup milk, 1 tsp cocoa powder, 1/2 tsp maple syrup or honey, pinch of salt',
+      steps: 'Mix all ingredients in a bowl\nCover and refrigerate\nReady to eat after 1 hour; top with berries, nuts',
+      prepNote: 'Make the night before, eat directly next day'
+    },
+    fil: {
+      name: 'Chia Seed Pudding',
+      ingredients: '3 kutsarita chia seeds, 3 kutsarita protein powder, 3/4 tasang gatas, 1 kutsarita cocoa powder, 1/2 kutsarita maple syrup o honey, kaunting asin',
+      steps: 'Ihalo lahat ng sangkap sa mangkok\nTakpan at ilagay sa ref\nPagkatapos ng 1 oras, pwede nang kainin; lagyan ng berries, nuts',
+      prepNote: 'Gawin sa gabi, kainin kinabukasan'
+    },
+  },
+  {
+    id: 2, type: 'prepped', time: 5,
+    tags: { starch: [], protein: ['希臘優格'], fiber: ['冷凍莓果','香蕉'], drink: ['牛奶'] },
+    shopping: ['冷凍莓果','香蕉','希臘優格','牛奶'],
+    zh: {
+      name: '莓果優格果昔',
+      ingredients: '冷凍莓果、香蕉、希臘優格、牛奶或水',
+      steps: '將冷凍莓果、香蕉攪拌均勻\n加入希臘優格\n加入牛奶或水\n冷凍一晚後食用更冰涼',
+      prepNote: '前一晚打好冷凍'
+    },
+    en: {
+      name: 'Berry Yogurt Smoothie',
+      ingredients: 'Frozen berries, banana, Greek yogurt, milk or water',
+      steps: 'Blend frozen berries and banana\nAdd Greek yogurt\nAdd milk or water\nFreeze overnight for an icier texture',
+      prepNote: 'Blend the night before and freeze'
+    },
+    fil: {
+      name: 'Berry Yogurt Smoothie',
+      ingredients: 'Frozen berries, saging, Greek yogurt, gatas o tubig',
+      steps: 'I-blend ang frozen berries at saging\nDagdagan ng Greek yogurt\nDagdagan ng gatas o tubig\nI-freeze ng isang gabi para mas malamig',
+      prepNote: 'I-blend sa gabi at i-freeze'
+    },
+  },
+  {
+    id: 3, type: 'prepped', time: 5,
+    tags: { starch: ['全麥吐司'], protein: [], fiber: ['酪梨'], drink: [] },
+    shopping: ['酪梨','全麥吐司','檸檬','鹽','胡椒粉'],
+    zh: {
+      name: '酪梨吐司',
+      ingredients: '酪梨、全麥吐司或歐式麵包、檸檬汁、鹽、胡椒粉',
+      steps: '酪梨壓成泥，加檸檬汁、鹽、胡椒拌勻\n冷藏保存\n隔日早上塗在吐司上即可',
+      prepNote: '酪梨泥前一晚做好冷藏'
+    },
+    en: {
+      name: 'Avocado Toast',
+      ingredients: 'Avocado, whole wheat toast or multigrain bread, lemon juice, salt, pepper',
+      steps: 'Mash avocado, mix with lemon juice, salt, pepper\nRefrigerate\nSpread on toast next morning',
+      prepNote: 'Prepare avocado mash night before and refrigerate'
+    },
+    fil: {
+      name: 'Avocado Toast',
+      ingredients: 'Abokado, whole wheat na tinapay, katas ng limon, asin, paminta',
+      steps: 'Dikdikin ang abokado, haluin sa katas ng limon, asin, paminta\nIlagay sa ref\nIpahid sa tinapay kinabukasan',
+      prepNote: 'Ihanda ang abokado sa gabi at ilagay sa ref'
+    },
+  },
+  {
+    id: 4, type: 'prepped', time: 50,
+    tags: { starch: ['燕麥片'], protein: ['雞蛋'], fiber: ['桃子'], drink: ['牛奶'] },
+    shopping: ['燕麥片','黑糖','泡打粉','肉桂粉','杏仁片','牛奶','雞蛋','椰子油','香草精','桃子'],
+    zh: {
+      name: '桃子杏仁烤燕麥',
+      ingredients: '燕麥、黑糖、泡打粉、鹽、肉桂、杏仁片、牛奶、雞蛋、椰子油、香草、桃子',
+      steps: '混合乾料：燕麥、黑糖、泡打粉、鹽、肉桂、杏仁\n混合濕料：牛奶、雞蛋、椰子油、香草\n桃子鋪底，倒入燕麥糊，再倒牛奶混合物\n170°C烤40分鐘至金黃\n放涼後可分裝冷藏，隔日加熱食用',
+      prepNote: '週末批量烤好，分裝冷藏可吃數日'
+    },
+    en: {
+      name: 'Peach Almond Baked Oats',
+      ingredients: 'Oats, brown sugar, baking powder, salt, cinnamon, sliced almonds, milk, egg, coconut oil, vanilla, peach',
+      steps: 'Mix dry: oats, brown sugar, baking powder, salt, cinnamon, almonds\nMix wet: milk, egg, coconut oil, vanilla\nLayer peaches on bottom, pour oat mix, then milk mix\nBake at 170°C for 40 min until golden\nCool, portion, refrigerate; reheat to serve',
+      prepNote: 'Batch bake on weekends, portion and refrigerate for days'
+    },
+    fil: {
+      name: 'Peach Almond Baked Oats',
+      ingredients: 'Oats, brown sugar, baking powder, asin, cinnamon, sliced almonds, gatas, itlog, langis ng niyog, vanilla, peach',
+      steps: 'Haluin ang mga tuyong sangkap: oats, brown sugar, baking powder, asin, cinnamon, almonds\nHaluin ang mga basang sangkap: gatas, itlog, langis ng niyog, vanilla\nIlatag ang peach sa ilalim, ibuhos ang oat mix, pagkatapos ang gatas mix\nI-bake sa 170°C ng 40 minuto hanggang gintong kulay\nPalamigan, hatiin sa bahagi, ilagay sa ref; init-initin bago kainin',
+      prepNote: 'I-batch bake tuwing weekend, hatiin at ilagay sa ref'
+    },
+  },
+  {
+    id: 5, type: 'fresh', time: 8,
+    tags: { starch: ['燕麥片'], protein: [], fiber: [], drink: ['牛奶'] },
+    shopping: ['燕麥片','牛奶','蜂蜜'],
+    zh: {
+      name: '燕麥粥',
+      ingredients: '燕麥片、牛奶½杯、水2杯、蜂蜜',
+      steps: '½杯牛奶和2杯水加燕麥煮滾\n中小火煮5-6分鐘持續攪拌\n放溫後加蜂蜜，可加水果堅果',
+      prepNote: '現煮，約8分鐘'
+    },
+    en: {
+      name: 'Oatmeal Porridge',
+      ingredients: 'Rolled oats, 1/2 cup milk, 2 cups water, honey',
+      steps: 'Bring 1/2 cup milk + 2 cups water + oats to boil\nSimmer 5-6 min, stirring continuously\nLet cool slightly, add honey, fruits or nuts',
+      prepNote: 'Cook fresh, about 8 minutes'
+    },
+    fil: {
+      name: 'Oatmeal Porridge',
+      ingredients: 'Rolled oats, 1/2 tasang gatas, 2 tasang tubig, honey',
+      steps: 'Pakuluan ang 1/2 tasa gatas + 2 tasang tubig + oats\nLutuin ng 5-6 min sa mababang apoy, haluing palagi\nHayaang lumamig nang kaunti, dagdagan ng honey, prutas o nuts',
+      prepNote: 'Lutuin ng sariwa, mga 8 minuto'
+    },
+  },
+  {
+    id: 6, type: 'prepped', time: 10,
+    tags: { starch: [], protein: [], fiber: ['香蕉','菠菜','鳳梨','蘋果','奇異果'], drink: [] },
+    shopping: ['香蕉','菠菜','鳳梨','蘋果','奇異果','奇亞籽','蜂蜜'],
+    zh: {
+      name: '綠色果昔碗',
+      ingredients: '香蕉、菠菜、鳳梨、蘋果、奇異果、奇亞籽、蜂蜜',
+      steps: '香蕉、菠菜、鳳梨、蘋果切塊放入攪拌機\n低速攪拌至滑順\n倒入碗中冷凍至隔日\n食用時鋪上香蕉片、奇異果片、奇亞籽、蜂蜜',
+      prepNote: '前一晚打好冷凍'
+    },
+    en: {
+      name: 'Green Smoothie Bowl',
+      ingredients: 'Banana, spinach, pineapple, apple, kiwi, chia seeds, honey',
+      steps: 'Cut banana, spinach, pineapple, apple and blend\nBlend on low until smooth\nPour into bowl and freeze overnight\nTop with banana slices, kiwi, chia seeds, honey when serving',
+      prepNote: 'Blend the night before and freeze'
+    },
+    fil: {
+      name: 'Green Smoothie Bowl',
+      ingredients: 'Saging, spinach, pinya, mansanas, kiwi, chia seeds, honey',
+      steps: 'Hiwain ang saging, spinach, pinya, mansanas at i-blend\nI-blend sa mababang bilis hanggang makinis\nIbuhos sa mangkok at i-freeze ng isang gabi\nLagyan ng hiwa ng saging, kiwi, chia seeds, honey kapag kakainin',
+      prepNote: 'I-blend sa gabi at i-freeze'
+    },
+  },
+  {
+    id: 7, type: 'prepped', time: 30,
+    tags: { starch: ['燕麥片'], protein: ['雞蛋'], fiber: ['香蕉','冷凍莓果'], drink: ['牛奶'] },
+    shopping: ['香蕉','雞蛋','香草精','蜂蜜','杏仁','燕麥片','燕麥粉','泡打粉','肉桂粉','椰子油','冷凍莓果'],
+    zh: {
+      name: '三倍莓果燕麥糕',
+      ingredients: '香蕉、雞蛋、香草精、蜂蜜、杏仁、燕麥片、燕麥粉、泡打粉、肉桂粉、鹽、椰子油、莓果',
+      steps: '香蕉壓泥，加蛋、香草精、蜂蜜、杏仁牛奶拌勻\n混合乾料\n合併濕料乾料，加椰子油和莓果拌勻\n馬芬杯噴油，倒入麵糊\n175°C烤15-20分鐘\n放涼後密封冷凍，隔日直接吃',
+      prepNote: '批量烤好冷凍，隨取隨吃'
+    },
+    en: {
+      name: 'Triple Berry Oat Muffins',
+      ingredients: 'Banana, egg, vanilla extract, honey, almonds, rolled oats, oat flour, baking powder, cinnamon, salt, coconut oil, berries',
+      steps: 'Mash banana, mix with egg, vanilla, honey, almond milk\nMix dry ingredients\nCombine wet and dry, fold in coconut oil and berries\nSpray muffin cups, pour batter\nBake at 175°C for 15-20 min\nCool, seal, freeze; eat directly next day',
+      prepNote: 'Batch bake and freeze, grab and go'
+    },
+    fil: {
+      name: 'Triple Berry Oat Muffins',
+      ingredients: 'Saging, itlog, vanilla extract, honey, almonds, rolled oats, oat flour, baking powder, cinnamon, asin, langis ng niyog, berries',
+      steps: 'Dikdikin ang saging, haluin sa itlog, vanilla, honey, almond milk\nHaluin ang mga tuyong sangkap\nPagsasamahin ang basa at tuyo, ihaluin ang langis ng niyog at berries\nI-spray ang muffin cups, ibuhos ang batter\nI-bake sa 175°C ng 15-20 minuto\nPalamigan, i-seal, i-freeze; kainin kinabukasan',
+      prepNote: 'I-batch bake at i-freeze, grab and go'
+    },
+  },
+  {
+    id: 8, type: 'quick', time: 2,
+    tags: { starch: ['玉米粒'], protein: ['鮪魚罐頭'], fiber: [], drink: [] },
+    shopping: ['玉米粒罐頭','鮪魚罐頭'],
+    zh: {
+      name: '鮪魚玉米',
+      ingredients: '玉米粒罐頭、鮪魚罐頭',
+      steps: '開罐後拌勻即可\n可搭配水煮蛋',
+      prepNote: '隨開隨吃，2分鐘搞定'
+    },
+    en: {
+      name: 'Tuna & Corn',
+      ingredients: 'Canned corn, canned tuna',
+      steps: 'Open cans and mix\nServe with boiled egg (optional)',
+      prepNote: 'Ready in 2 minutes'
+    },
+    fil: {
+      name: 'Tuna at Mais',
+      ingredients: 'De-latang mais, de-latang tuna',
+      steps: 'Buksan ang mga lata at haluin\nPwedeng ihain kasama ang nilagang itlog',
+      prepNote: 'Handa sa 2 minuto'
+    },
+  },
+  {
+    id: 9, type: 'fresh', time: 8,
+    tags: { starch: ['燕麥片'], protein: [], fiber: ['火龍果'], drink: ['牛奶'] },
+    shopping: ['火龍果','牛奶','燕麥片'],
+    zh: {
+      name: '火龍果燕麥奶',
+      ingredients: '火龍果、鮮奶280cc、燕麥片4大匙、熱水200cc',
+      steps: '火龍果去皮切塊（可前日備好）\n4大匙燕麥加200cc熱水沖泡3分鐘\n燕麥＋半顆火龍果＋280cc鮮奶放果汁機打勻',
+      prepNote: '火龍果可前日切好冷藏'
+    },
+    en: {
+      name: 'Dragon Fruit Oat Milk',
+      ingredients: 'Dragon fruit, 280cc fresh milk, 4 tbsp oats, 200cc hot water',
+      steps: 'Peel and cut dragon fruit (can prep day before)\nSoak 4 tbsp oats in 200cc hot water for 3 min\nBlend oats + half dragon fruit + 280cc milk',
+      prepNote: 'Dragon fruit can be pre-cut and refrigerated'
+    },
+    fil: {
+      name: 'Dragon Fruit Oat Milk',
+      ingredients: 'Dragon fruit, 280cc gatas, 4 kutsara oats, 200cc mainit na tubig',
+      steps: 'Balatan at hiwain ang dragon fruit (pwedeng ihanda kahapon)\nIbabad ang 4 kutsara oats sa 200cc mainit na tubig ng 3 min\nI-blend ang oats + kalahating dragon fruit + 280cc gatas',
+      prepNote: 'Pwedeng hiwain ang dragon fruit at ilagay sa ref'
+    },
+  },
+  {
+    id: 10, type: 'prepped', time: 20,
+    tags: { starch: ['糙米飯'], protein: ['肉末'], fiber: ['香菇','青蔥'], drink: [] },
+    shopping: ['糙米飯','肉末','香菇','青蔥','白胡椒粉','麻油','鹽'],
+    zh: {
+      name: '香菇肉末糙米粥',
+      ingredients: '糙米飯1.5碗、水2碗、白胡椒粉、香菇1朵、肉末、青蔥2根、鹽、麻油',
+      steps: '煮2碗水，水滾放肉末煮\n香菇切丁加入\n加1.5碗糙米飯熬煮\n加鹽調味，冷藏隔日備用\n隔日加熱，撒蔥花、胡椒、麻油',
+      prepNote: '前一晚煮好冷藏，隔日加熱'
+    },
+    en: {
+      name: 'Mushroom Pork Brown Rice Congee',
+      ingredients: '1.5 bowls brown rice, 2 bowls water, white pepper, 1 shiitake mushroom, ground pork, 2 green onions, salt, sesame oil',
+      steps: 'Boil 2 bowls water, cook ground pork\nDice shiitake and add\nAdd 1.5 bowls brown rice and simmer\nSeason with salt, refrigerate overnight\nReheat next day, top with green onion, pepper, sesame oil',
+      prepNote: 'Cook the night before, reheat next morning'
+    },
+    fil: {
+      name: 'Mushroom Pork Brown Rice Congee',
+      ingredients: '1.5 mangkok brown rice, 2 mangkok tubig, puting paminta, 1 shiitake mushroom, giniling na baboy, 2 sibuyas na mura, asin, sesame oil',
+      steps: 'Pakuluan ang 2 mangkok tubig, lutuin ang giniling na baboy\nHiwain ang shiitake at idagdag\nDagdagan ng 1.5 mangkok brown rice at pakuluan\nTimplahan ng asin, ilagay sa ref\nInitin kinabukasan, lagyan ng sibuyas, paminta, sesame oil',
+      prepNote: 'Lutuin sa gabi, initin kinabukasan'
+    },
+  },
+  {
+    id: 11, type: 'prepped', time: 5,
+    tags: { starch: ['燕麥片'], protein: [], fiber: ['冷凍莓果'], drink: ['牛奶'] },
+    shopping: ['燕麥片','牛奶','蜂蜜','冷凍莓果','堅果','奇亞籽'],
+    zh: {
+      name: '隔夜燕麥',
+      ingredients: '燕麥片5匙、牛奶或豆漿或堅果奶、蜂蜜、莓果、堅果、奇亞籽',
+      steps: '玻璃瓶中放燕麥、剛蓋過燕麥的奶、奇亞籽、蜂蜜\n封好冷藏至隔日\n隔日加莓果或堅果即食\n也可微波加熱',
+      prepNote: '前一晚5分鐘備好'
+    },
+    en: {
+      name: 'Overnight Oats',
+      ingredients: '5 tbsp oats, milk/soy milk/nut milk, honey, berries, nuts, chia seeds',
+      steps: 'Put oats in a jar, cover with milk, add chia seeds and honey\nSeal and refrigerate overnight\nAdd berries or nuts next morning\nCan also microwave to warm',
+      prepNote: '5-minute prep the night before'
+    },
+    fil: {
+      name: 'Overnight Oats',
+      ingredients: '5 kutsara oats, gatas/soy milk/nut milk, honey, berries, nuts, chia seeds',
+      steps: 'Ilagay ang oats sa bote, takpan ng gatas, dagdagan ng chia seeds at honey\nI-seal at ilagay sa ref ng isang gabi\nDagdagan ng berries o nuts kinabukasan\nPwede ring i-microwave para initin',
+      prepNote: '5 minutong paghahanda sa gabi'
+    },
+  },
+  {
+    id: 12, type: 'prepped', time: 10,
+    tags: { starch: ['燕麥片'], protein: ['希臘優格'], fiber: ['冷凍莓果','香蕉'], drink: ['牛奶'] },
+    shopping: ['冷凍莓果','香蕉','蜂蜜','牛奶','希臘優格','燕麥片','堅果'],
+    zh: {
+      name: '巴西莓碗',
+      ingredients: '冷凍莓果2匙、香蕉1根、冰塊、水、牛奶、蜂蜜、希臘優格、燕麥、堅果、水果',
+      steps: '冷凍莓果＋香蕉＋冰塊＋蜂蜜＋水和牛奶各半，打成泥冷藏\n隔日碗中放希臘優格，加莓果泥\n鋪燕麥、水果、堅果即可',
+      prepNote: '前一晚打好冷藏'
+    },
+    en: {
+      name: 'Açaí Bowl',
+      ingredients: '2 tbsp frozen berries, 1 banana, ice, water, milk, honey, Greek yogurt, oats, nuts, fruit',
+      steps: 'Blend frozen berries + banana + ice + honey + half water half milk; refrigerate\nNext day, put Greek yogurt in bowl, add berry purée\nTop with oats, fruit, nuts',
+      prepNote: 'Blend the night before and refrigerate'
+    },
+    fil: {
+      name: 'Açaí Bowl',
+      ingredients: '2 kutsara frozen berries, 1 saging, yelo, tubig, gatas, honey, Greek yogurt, oats, nuts, prutas',
+      steps: 'I-blend ang frozen berries + saging + yelo + honey + kalahating tubig kalahating gatas; ilagay sa ref\nKinabukasan, lagyan ng Greek yogurt ang mangkok, dagdagan ng berry purée\nLagyan ng oats, prutas, nuts',
+      prepNote: 'I-blend sa gabi at ilagay sa ref'
+    },
+  },
+  {
+    id: 13, type: 'fresh', time: 8,
+    tags: { starch: ['燕麥片'], protein: ['雞蛋'], fiber: [], drink: [] },
+    shopping: ['燕麥片','雞蛋','胡椒粉','香油'],
+    zh: {
+      name: '大燕麥片鹹粥',
+      ingredients: '大燕麥片3-4匙、雞蛋1顆、水500cc、胡椒、香油',
+      steps: '500cc水與3-4匙燕麥一起煮滾\n打一顆蛋進去攪拌20秒關火\n灑胡椒與香油即可',
+      prepNote: '現煮，約8分鐘'
+    },
+    en: {
+      name: 'Savory Oat Porridge',
+      ingredients: '3-4 tbsp rolled oats, 1 egg, 500cc water, pepper, sesame oil',
+      steps: 'Boil 500cc water with 3-4 tbsp oats\nCrack in an egg, stir for 20 sec, turn off heat\nSprinkle pepper and sesame oil',
+      prepNote: 'Cook fresh, about 8 minutes'
+    },
+    fil: {
+      name: 'Maalat na Oat Porridge',
+      ingredients: '3-4 kutsara rolled oats, 1 itlog, 500cc tubig, paminta, sesame oil',
+      steps: 'Pakuluan ang 500cc tubig kasama ang 3-4 kutsara oats\nBasagin ang itlog, haluin ng 20 segundo, patayin ang apoy\nBudburan ng paminta at sesame oil',
+      prepNote: 'Lutuin ng sariwa, mga 8 minuto'
+    },
+  },
+  {
+    id: 14, type: 'prepped', time: 10,
+    tags: { starch: ['全麥吐司'], protein: ['希臘優格'], fiber: ['蘋果','芭樂','橘子'], drink: [] },
+    shopping: ['蘋果','芭樂','橘子','蔓越莓乾','堅果','希臘優格','全麥吐司'],
+    zh: {
+      name: '優格水果拼盤吐司',
+      ingredients: '蘋果半顆、芭樂半顆、橘子半顆、蔓越莓、堅果、優格、全麥吐司',
+      steps: '前一晚切好蘋果片、芭樂絲、橘子丁，冷藏備用\n隔日吐司抹一層優格\n鋪上水果\n放上蔓越莓、堅果即可',
+      prepNote: '前一晚切好水果冷藏'
+    },
+    en: {
+      name: 'Yogurt Fruit Platter Toast',
+      ingredients: 'Half apple, half guava, half orange, cranberries, nuts, yogurt, whole wheat toast',
+      steps: 'Cut apple slices, shred guava, dice orange the night before; refrigerate\nNext day, spread yogurt on toast\nArrange fruit on top\nAdd cranberries and nuts',
+      prepNote: 'Cut fruit the night before and refrigerate'
+    },
+    fil: {
+      name: 'Yogurt Fruit Platter Toast',
+      ingredients: 'Kalahating mansanas, kalahating bayabas, kalahating dalandan, cranberries, nuts, yogurt, whole wheat na tinapay',
+      steps: 'Hiwain ang mansanas, kudkurin ang bayabas, hiwain ang dalandan sa gabi; ilagay sa ref\nKinabukasan, ipahid ang yogurt sa tinapay\nIayos ang prutas sa ibabaw\nLagyan ng cranberries at nuts',
+      prepNote: 'Hiwain ang prutas sa gabi at ilagay sa ref'
+    },
+  },
+  {
+    id: 15, type: 'quick', time: 3,
+    tags: { starch: ['全麥吐司'], protein: ['雞蛋','鮪魚罐頭'], fiber: [], drink: [] },
+    shopping: ['雞蛋','鮪魚罐頭','起司片'],
+    zh: {
+      name: '微波起司鮪魚蛋',
+      ingredients: '雞蛋1顆、水煮鮪魚罐1/4罐、起司',
+      steps: '雞蛋與1/4罐鮪魚攪拌\n高微波1分30秒\n放上起司對折\n可用全麥吐司夾著吃',
+      prepNote: '3分鐘完成'
+    },
+    en: {
+      name: 'Microwave Cheese Tuna Egg',
+      ingredients: '1 egg, 1/4 can tuna in water, cheese',
+      steps: 'Mix egg and 1/4 can tuna\nMicrowave on high for 1 min 30 sec\nTop with cheese and fold\nServe with whole wheat toast',
+      prepNote: 'Done in 3 minutes'
+    },
+    fil: {
+      name: 'Microwave Cheese Tuna Egg',
+      ingredients: '1 itlog, 1/4 lata tuna sa tubig, cheese',
+      steps: 'Haluin ang itlog at 1/4 latang tuna\nI-microwave ng 1 min 30 sec sa mataas\nLagyan ng cheese at tiklupin\nIhain kasama ang whole wheat na tinapay',
+      prepNote: 'Tapos sa 3 minuto'
+    },
+  },
+  {
+    id: 16, type: 'fresh', time: 10,
+    tags: { starch: ['全麥吐司'], protein: ['起司'], fiber: ['菠菜','洋蔥'], drink: [] },
+    shopping: ['起司片','全麥吐司','菠菜','黑胡椒鹽','洋蔥'],
+    zh: {
+      name: '牽絲菠菜起司三明治',
+      ingredients: '起司片、全麥吐司、菠菜70g、黑胡椒鹽、洋蔥1/3顆',
+      steps: '前一日洋蔥切絲、菠菜洗淨切段，保鮮盒備用\n吐司→起司→菠菜→洋蔥→起司→吐司，中間撒黑胡椒鹽\n氣炸鍋150°C 5分鐘',
+      prepNote: '蔬菜前一晚切好，隔日組裝氣炸'
+    },
+    en: {
+      name: 'Cheesy Spinach Grilled Sandwich',
+      ingredients: 'Cheese slices, whole wheat toast, 70g spinach, black pepper salt, 1/3 onion',
+      steps: 'Slice onion and wash/cut spinach the night before; store in container\nToast → cheese → spinach → onion → cheese → toast; sprinkle black pepper salt\nAir fry at 150°C for 5 min',
+      prepNote: 'Prep veggies the night before, assemble and air fry next day'
+    },
+    fil: {
+      name: 'Cheesy Spinach Grilled Sandwich',
+      ingredients: 'Cheese slices, whole wheat na tinapay, 70g spinach, asin na may paminta, 1/3 sibuyas',
+      steps: 'Hiwain ang sibuyas at hugasan/hiwain ang spinach sa gabi; ilagay sa lalagyan\nTinapay → cheese → spinach → sibuyas → cheese → tinapay; budburan ng asin na may paminta\nAir fry sa 150°C ng 5 minuto',
+      prepNote: 'Ihanda ang gulay sa gabi, i-assemble at i-air fry kinabukasan'
+    },
+  },
+  {
+    id: 17, type: 'prepped', time: 35,
+    tags: { starch: ['燕麥片'], protein: [], fiber: ['堅果'], drink: ['牛奶'] },
+    shopping: ['燕麥片','南瓜籽','椰子油','蜂蜜','果乾','堅果'],
+    zh: {
+      name: '自製穀物脆片',
+      ingredients: '燕麥片300g、鹽8g、果仁/南瓜籽220g、椰子油120ml、蜂蜜120ml、果乾適量',
+      steps: '燕麥、鹽、果仁、南瓜籽拌勻\n加椰子油和蜂蜜拌勻\n鋪烘焙紙，170°C烤20-25分鐘（中途翻拌）\n靜置30分鐘後弄散，完全冷卻裝密封罐\n可保存3-4週，加牛奶或豆漿食用',
+      prepNote: '一次做好可吃3-4週'
+    },
+    en: {
+      name: 'Homemade Granola',
+      ingredients: '300g oats, 8g salt, 220g nuts/pumpkin seeds, 120ml coconut oil, 120ml honey, dried fruit',
+      steps: 'Mix oats, salt, nuts, pumpkin seeds\nAdd coconut oil and honey, mix\nSpread on baking paper, bake at 170°C for 20-25 min (stir halfway)\nLet rest 30 min, break apart, cool completely, store in airtight jar\nKeeps 3-4 weeks; serve with milk or soy milk',
+      prepNote: 'Make once, lasts 3-4 weeks'
+    },
+    fil: {
+      name: 'Homemade Granola',
+      ingredients: '300g oats, 8g asin, 220g nuts/buto ng kalabasa, 120ml langis ng niyog, 120ml honey, dried fruit',
+      steps: 'Haluin ang oats, asin, nuts, buto ng kalabasa\nDagdagan ng langis ng niyog at honey, haluin\nIlatag sa baking paper, i-bake sa 170°C ng 20-25 min (haluin sa gitna)\nHayaang pumahinga ng 30 min, basagin, palamigan, ilagay sa sealed na bote\nTumatagal ng 3-4 linggo; ihain kasama ang gatas o soy milk',
+      prepNote: 'Gawin ng isang beses, tumatagal ng 3-4 linggo'
+    },
+  },
+  {
+    id: 18, type: 'prepped', time: 10,
+    tags: { starch: [], protein: ['雞蛋','嫩豆腐'], fiber: ['酪梨','蘋果'], drink: [] },
+    shopping: ['柚香和風醬','嫩豆腐','酪梨','蘋果','雞蛋'],
+    zh: {
+      name: '柚香和風健康沙拉',
+      ingredients: '柚香和風醬、嫩豆腐、酪梨0.5顆、蘋果0.5顆、白煮蛋',
+      steps: '酪梨切薄片、蘋果去籽切片\n以上材料與白煮蛋先備好冷藏\n隔日嫩豆腐切塊、蛋切片，與酪梨蘋果擺盤\n淋柚香和風醬即可',
+      prepNote: '前一晚備料冷藏'
+    },
+    en: {
+      name: 'Yuzu Wafu Healthy Salad',
+      ingredients: 'Yuzu wafu dressing, silken tofu, 1/2 avocado, 1/2 apple, boiled egg',
+      steps: 'Slice avocado thin, core and slice apple\nPrep all ingredients with boiled egg, refrigerate\nNext day, cube tofu, slice egg, arrange with avocado and apple\nDrizzle yuzu wafu dressing',
+      prepNote: 'Prep ingredients the night before and refrigerate'
+    },
+    fil: {
+      name: 'Yuzu Wafu Healthy Salad',
+      ingredients: 'Yuzu wafu dressing, malambot na tokwa, 1/2 abokado, 1/2 mansanas, nilagang itlog',
+      steps: 'Hiwain ng manipis ang abokado, alisin ang buto at hiwain ang mansanas\nIhanda lahat ng sangkap kasama ang nilagang itlog, ilagay sa ref\nKinabukasan, hiwain ang tokwa, hiwain ang itlog, iayos kasama ang abokado at mansanas\nBuhusan ng yuzu wafu dressing',
+      prepNote: 'Ihanda ang sangkap sa gabi at ilagay sa ref'
+    },
+  },
+];
+
+const quickCombos = [
+  {
+    type: 'quick', time: 3, shopping: ['地瓜','雞蛋','蘋果','豆漿'],
+    zh: { name: '地瓜＋水煮蛋＋蘋果＋豆漿', starch: '地瓜', protein: '水煮蛋', fiber: '蘋果', drink: '無糖豆漿' },
+    en: { name: 'Sweet Potato + Egg + Apple + Soy Milk', starch: 'Sweet potato', protein: 'Boiled egg', fiber: 'Apple', drink: 'Soy milk' },
+    fil: { name: 'Kamote + Itlog + Mansanas + Soy Milk', starch: 'Kamote', protein: 'Nilagang itlog', fiber: 'Mansanas', drink: 'Soy milk' },
+  },
+  {
+    type: 'quick', time: 3, shopping: ['歐式雜糧麵包','舒肥雞胸肉','生菜沙拉','油醋醬'],
+    zh: { name: '雜糧麵包＋雞胸肉＋生菜沙拉', starch: '歐式雜糧麵包', protein: '舒肥雞胸肉', fiber: '生菜沙拉', drink: '' },
+    en: { name: 'Multigrain Bread + Chicken + Salad', starch: 'Multigrain bread', protein: 'Chicken breast', fiber: 'Green salad', drink: '' },
+    fil: { name: 'Multigrain Bread + Manok + Salad', starch: 'Multigrain bread', protein: 'Dibdib ng manok', fiber: 'Green salad', drink: '' },
+  },
+  {
+    type: 'quick', time: 3, shopping: ['燕麥片','希臘優格','香蕉','堅果','牛奶'],
+    zh: { name: '燕麥＋優格＋香蕉＋堅果', starch: '燕麥片沖泡', protein: '希臘優格', fiber: '香蕉', drink: '牛奶' },
+    en: { name: 'Oats + Yogurt + Banana + Nuts', starch: 'Instant oats', protein: 'Greek yogurt', fiber: 'Banana', drink: 'Milk' },
+    fil: { name: 'Oats + Yogurt + Saging + Nuts', starch: 'Instant oats', protein: 'Greek yogurt', fiber: 'Saging', drink: 'Gatas' },
+  },
+  {
+    type: 'quick', time: 2, shopping: ['地瓜','茶葉蛋','芭樂','優酪乳'],
+    zh: { name: '地瓜＋茶葉蛋＋芭樂＋優酪乳', starch: '地瓜', protein: '茶葉蛋', fiber: '芭樂', drink: '優酪乳' },
+    en: { name: 'Sweet Potato + Tea Egg + Guava + Yogurt Drink', starch: 'Sweet potato', protein: 'Tea egg', fiber: 'Guava', drink: 'Yogurt drink' },
+    fil: { name: 'Kamote + Tea Egg + Bayabas + Yogurt Drink', starch: 'Kamote', protein: 'Tea egg', fiber: 'Bayabas', drink: 'Yogurt drink' },
+  },
+  {
+    type: 'quick', time: 3, shopping: ['全麥吐司','雞蛋','奇異果','豆漿'],
+    zh: { name: '全麥吐司＋水煮蛋＋奇異果＋豆漿', starch: '全麥吐司', protein: '水煮蛋', fiber: '奇異果', drink: '無糖豆漿' },
+    en: { name: 'Wheat Toast + Egg + Kiwi + Soy Milk', starch: 'Wheat toast', protein: 'Boiled egg', fiber: 'Kiwi', drink: 'Soy milk' },
+    fil: { name: 'Wheat Toast + Itlog + Kiwi + Soy Milk', starch: 'Wheat toast', protein: 'Nilagang itlog', fiber: 'Kiwi', drink: 'Soy milk' },
+  },
+  {
+    type: 'quick', time: 3, shopping: ['歐式雜糧麵包','希臘優格','冷凍莓果','蜂蜜'],
+    zh: { name: '雜糧麵包＋優格＋莓果＋蜂蜜', starch: '歐式雜糧麵包', protein: '希臘優格', fiber: '莓果', drink: '' },
+    en: { name: 'Multigrain Bread + Yogurt + Berries + Honey', starch: 'Multigrain bread', protein: 'Greek yogurt', fiber: 'Berries', drink: '' },
+    fil: { name: 'Multigrain Bread + Yogurt + Berries + Honey', starch: 'Multigrain bread', protein: 'Greek yogurt', fiber: 'Berries', drink: '' },
+  },
+];
+
+// Helper: get localized field
+function L(item, field) {
+  const loc = item[currentLang] || item['zh'];
+  return loc ? (loc[field] || '') : '';
+}
+
+const allOptions = [...recipes, ...quickCombos];
+
+let currentMeals = [];
+let activeFilter = 'all';
+
+// ============ LANGUAGE SWITCHING ============
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick="setLang('${lang}')"]`).classList.add('active');
+  document.documentElement.lang = lang === 'zh' ? 'zh-TW' : lang === 'fil' ? 'fil' : 'en';
+  updateUIText();
+  renderRecipes();
+  renderMixItems();
+  if (currentMeals.length > 0) {
+    renderMeals();
+    renderGeneratedShopping();
+    updateMasterShopping();
+  }
+}
+
+function updateUIText() {
+  document.getElementById('mainTitle').textContent = t('title');
+  document.getElementById('mainSubtitle').textContent = t('subtitle');
+  document.getElementById('tabGenerate').textContent = t('tabGenerate');
+  document.getElementById('tabRecipes').textContent = t('tabRecipes');
+  document.getElementById('tabMix').textContent = t('tabMix');
+  document.getElementById('tabShopping').textContent = t('tabShopping');
+  document.getElementById('labelDays').textContent = t('labelDays');
+  document.getElementById('opt5').textContent = t('opt5');
+  document.getElementById('opt3').textContent = t('opt3');
+  document.getElementById('opt7').textContent = t('opt7');
+  document.getElementById('filterAll').textContent = t('filterAll');
+  document.getElementById('filterPrepped').textContent = t('filterPrepped');
+  document.getElementById('filterFresh').textContent = t('filterFresh');
+  document.getElementById('filterQuick').textContent = t('filterQuick');
+  document.getElementById('btnGenerate').textContent = t('btnGenerate');
+  document.getElementById('btnExport').textContent = t('btnExport');
+  document.getElementById('rfilterAll').textContent = t('rfilterAll');
+  document.getElementById('rfilterPrepped').textContent = t('rfilterPrepped');
+  document.getElementById('rfilterFresh').textContent = t('rfilterFresh');
+  document.getElementById('rfilterQuick').textContent = t('rfilterQuick');
+  document.getElementById('mixDesc').textContent = t('mixDesc');
+  document.getElementById('mixStarchTitle').textContent = t('mixStarchTitle');
+  document.getElementById('mixProteinTitle').textContent = t('mixProteinTitle');
+  document.getElementById('mixFiberTitle').textContent = t('mixFiberTitle');
+  document.getElementById('mixDrinkTitle').textContent = t('mixDrinkTitle');
+  document.getElementById('btnMixGen').textContent = t('btnMixGen');
+  document.getElementById('shopDesc').textContent = t('shopDesc');
+  // Update empty states if visible
+  const emptyGen = document.getElementById('emptyGenerate');
+  if (emptyGen) emptyGen.textContent = t('emptyGenerate');
+  const emptyShop = document.getElementById('emptyShopping');
+  if (emptyShop) emptyShop.textContent = t('emptyShopping');
+}
+
+// ============ TAB LOGIC ============
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ============ FILTER CHIPS ============
+document.querySelectorAll('[data-filter]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+  });
+});
+document.querySelectorAll('[data-rfilter]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-rfilter]').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    renderRecipes(chip.dataset.rfilter);
+  });
+});
+
+// ============ GENERATE ============
+function getFiltered() {
+  let pool = [...allOptions];
+  if (activeFilter === 'prepped') pool = pool.filter(r => r.type === 'prepped');
+  else if (activeFilter === 'fresh') pool = pool.filter(r => r.type === 'fresh');
+  else if (activeFilter === 'quick') pool = pool.filter(r => r.type === 'quick' || (r.time && r.time <= 5));
+  return pool;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickN(n) {
+  const pool = getFiltered();
+  if (pool.length === 0) return [];
+  const shuffled = shuffle(pool);
+  const picked = [];
+  const used = new Set();
+  for (const item of shuffled) {
+    if (picked.length >= n) break;
+    const key = L(item, 'name') || item.id;
+    if (!used.has(key)) {
+      used.add(key);
+      picked.push(item);
+    }
+  }
+  while (picked.length < n) {
+    picked.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  return picked;
+}
+
+function generate() {
+  const n = parseInt(document.getElementById('dayCount').value);
+  currentMeals = pickN(n);
+  renderMeals();
+  renderGeneratedShopping();
+  updateMasterShopping();
+}
+
+function swapMeal(idx) {
+  const pool = getFiltered();
+  const current = currentMeals[idx];
+  const currentName = L(current, 'name');
+  const others = pool.filter(p => L(p, 'name') !== currentName);
+  if (others.length > 0) {
+    currentMeals[idx] = others[Math.floor(Math.random() * others.length)];
+  }
+  renderMeals();
+  renderGeneratedShopping();
+  updateMasterShopping();
+}
+
+function typeLabel(type) {
+  if (type === 'prepped') return `<span class="meal-type type-prepped">${t('typePrepped')}</span>`;
+  if (type === 'fresh') return `<span class="meal-type type-fresh">${t('typeFresh')}</span>`;
+  return `<span class="meal-type type-quick">${t('typeQuick')}</span>`;
+}
+
+function tagClass(cat) {
+  if (cat === 'starch') return 'tag-starch';
+  if (cat === 'protein') return 'tag-protein';
+  if (cat === 'fiber') return 'tag-fiber';
+  return 'tag-drink';
+}
+
+function renderMeals() {
+  const el = document.getElementById('mealsOutput');
+  const dayNames = t('dayNames');
+  if (currentMeals.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🥣</div><p>${t('noMatch')}</p></div>`;
+    return;
+  }
+  el.innerHTML = '<div class="meals-grid">' + currentMeals.map((m, i) => {
+    const isRecipe = !!m.id; // recipes have id
+    const name = L(m, 'name');
+    let tagsHtml = '';
+    if (m.tags) {
+      for (const [cat, items] of Object.entries(m.tags)) {
+        items.forEach(item => {
+          tagsHtml += `<span class="item-tag ${tagClass(cat)}">${tItem(item)}</span>`;
+        });
+      }
+    }
+    // Quick combos have starch/protein/fiber/drink in localized data
+    const loc = m[currentLang] || m['zh'];
+    if (loc.starch) tagsHtml += `<span class="item-tag tag-starch">${loc.starch}</span>`;
+    if (loc.protein) tagsHtml += `<span class="item-tag tag-protein">${loc.protein}</span>`;
+    if (loc.fiber) tagsHtml += `<span class="item-tag tag-fiber">${loc.fiber}</span>`;
+    if (loc.drink) tagsHtml += `<span class="item-tag tag-drink">${loc.drink}</span>`;
+
+    let detail = '';
+    if (isRecipe && L(m, 'steps')) {
+      detail = `<details class="meal-detail"><summary>${t('viewSteps')}</summary>
+        <div class="content"><strong>${t('ingredients')}：</strong>${L(m, 'ingredients')}\n\n<strong>${t('steps')}：</strong>\n${L(m, 'steps')}\n\n<strong>${t('note')}：</strong>${L(m, 'prepNote')}</div></details>`;
+    } else if (L(m, 'prepNote')) {
+      detail = `<div style="font-size:.85em;color:var(--muted);margin-top:4px;">${L(m, 'prepNote')}</div>`;
+    }
+
+    const dayLabel = dayNames[i] || t('dayN').replace('{n}', i + 1);
+
+    return `<div class="meal-card">
+      <button class="swap-btn" onclick="swapMeal(${i})">${t('swap')}</button>
+      <h3><span class="meal-num">${i + 1}</span> ${dayLabel}</h3>
+      <div style="margin-bottom:6px;">${typeLabel(m.type)} <span style="font-size:.82em;color:var(--muted);">⏱ ${m.time || '?'}${t('minutes')}</span></div>
+      <div style="font-weight:600;font-size:1.05em;">${name}</div>
+      <div class="meal-items">${tagsHtml}</div>
+      ${detail}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ============ SHOPPING LIST ============
+const categories = {
+  '蛋奶豆製品': ['雞蛋','茶葉蛋','牛奶','希臘優格','優酪乳','起司片','嫩豆腐','豆漿','蛋白粉'],
+  '蔬菜水果': ['蘋果','芭樂','奇異果','香蕉','酪梨','冷凍莓果','菠菜','鳳梨','桃子','火龍果','橘子','洋蔥','青蔥','香菇','生菜沙拉','檸檬','蔓越莓乾'],
+  '主食穀物': ['地瓜','燕麥片','歐式雜糧麵包','全麥吐司','糙米飯','燕麥粉','玉米粒罐頭'],
+  '肉類蛋白': ['舒肥雞胸肉','鮪魚罐頭','肉末'],
+  '調味料醬料': ['蜂蜜','鹽','胡椒粉','椰子油','香草精','可可粉','肉桂粉','黑糖','泡打粉','麻油','白胡椒粉','香油','油醋醬','柚香和風醬','黑胡椒鹽','楓糖'],
+  '堅果種子': ['堅果','杏仁片','杏仁','南瓜籽','奇亞籽','果乾'],
+};
+
+function collectShopping(meals) {
+  const map = {};
+  meals.forEach(m => {
+    (m.shopping || []).forEach(item => {
+      map[item] = (map[item] || 0) + 1;
+    });
+  });
+  const result = {};
+  for (const [cat, items] of Object.entries(categories)) {
+    const found = items.filter(i => map[i]);
+    if (found.length > 0) {
+      result[cat] = found.map(i => ({ name: i, count: map[i] }));
+    }
+  }
+  const allCat = Object.values(categories).flat();
+  const uncategorized = Object.keys(map).filter(k => !allCat.includes(k));
+  if (uncategorized.length > 0) {
+    result['其他'] = uncategorized.map(i => ({ name: i, count: map[i] }));
+  }
+  return result;
+}
+
+function renderShoppingHtml(shopping) {
+  if (Object.keys(shopping).length === 0) return '';
+  return `<div class="shopping-section"><h2>${t('shoppingTitle')}</h2><div class="shop-grid">` +
+    Object.entries(shopping).map(([cat, items]) =>
+      `<div class="shop-cat"><h4>${tCat(cat)}</h4><ul>${items.map(i =>
+        `<li onclick="this.classList.toggle('checked')">${tItem(i.name)}${i.count > 1 ? ' ×' + i.count : ''}</li>`
+      ).join('')}</ul></div>`
+    ).join('') + '</div></div>';
+}
+
+function renderGeneratedShopping() {
+  document.getElementById('shoppingOutput').innerHTML = renderShoppingHtml(collectShopping(currentMeals));
+}
+
+function updateMasterShopping() {
+  const html = renderShoppingHtml(collectShopping(currentMeals));
+  document.getElementById('masterShopping').innerHTML = html || `<div class="empty-state"><div class="icon">🛒</div><p>${t('emptyShopShort')}</p></div>`;
+}
+
+// ============ EXPORT ============
+function exportText() {
+  if (currentMeals.length === 0) { alert(t('alertNoMeals')); return; }
+  const dayNames = t('dayNames');
+  let text = t('exportTitle') + '\n' + '═'.repeat(30) + '\n\n';
+  currentMeals.forEach((m, i) => {
+    const dayLabel = dayNames[i] || t('dayN').replace('{n}', i + 1);
+    text += `${dayLabel}：${L(m, 'name')}\n`;
+    if (L(m, 'ingredients')) text += `  ${t('ingredients')}：${L(m, 'ingredients')}\n`;
+    if (L(m, 'prepNote')) text += `  ${t('note')}：${L(m, 'prepNote')}\n`;
+    text += '\n';
+  });
+  const shopping = collectShopping(currentMeals);
+  if (Object.keys(shopping).length > 0) {
+    text += t('shoppingTitle') + '\n' + '─'.repeat(20) + '\n';
+    for (const [cat, items] of Object.entries(shopping)) {
+      text += `\n【${tCat(cat)}】\n`;
+      items.forEach(i => { text += `  ☐ ${tItem(i.name)}${i.count > 1 ? ' ×' + i.count : ''}\n`; });
+    }
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnExport');
+    const orig = btn.textContent;
+    btn.textContent = t('copied');
+    setTimeout(() => btn.textContent = t('btnExport'), 1500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert(t('copied'));
+  });
+}
+
+// ============ RECIPES TAB ============
+function renderRecipes(filter = 'all') {
+  let list = recipes;
+  if (filter === 'prepped') list = recipes.filter(r => r.type === 'prepped');
+  else if (filter === 'fresh') list = recipes.filter(r => r.type === 'fresh');
+  else if (filter === 'quick') list = recipes.filter(r => r.type === 'quick' || r.time <= 5);
+
+  document.getElementById('recipeGrid').innerHTML = list.map(r => `
+    <div class="recipe-card" id="recipe-${r.id}">
+      <h3>${L(r, 'name')}</h3>
+      <div class="recipe-meta">
+        ${typeLabel(r.type)}
+        <span>⏱ ${r.time}${t('minutes')}</span>
+      </div>
+      <div class="recipe-ingredients"><strong>${t('ingredients')}：</strong>${L(r, 'ingredients')}</div>
+      <button class="recipe-toggle" onclick="toggleRecipe(${r.id})">${t('expand')}</button>
+      <div class="recipe-steps"><strong>${t('steps')}：</strong>\n${L(r, 'steps')}\n\n<em>${t('tip')} ${L(r, 'prepNote')}</em></div>
+    </div>
+  `).join('');
+}
+
+function toggleRecipe(id) {
+  const card = document.getElementById('recipe-' + id);
+  card.classList.toggle('expanded');
+  const btn = card.querySelector('.recipe-toggle');
+  btn.textContent = card.classList.contains('expanded') ? t('collapse') : t('expand');
+}
+
+// ============ MIX & MATCH TAB ============
+function renderMixItems() {
+  for (const [cat, items] of Object.entries(mixItems)) {
+    const container = document.getElementById('mix' + cat.charAt(0).toUpperCase() + cat.slice(1));
+    container.innerHTML = items.map(item => {
+      const label = item[currentLang] || item['zh'];
+      return `<div class="mix-item" data-key="${item.key}" onclick="this.classList.toggle('selected')">${label}</div>`;
+    }).join('');
+  }
+}
+
+function generateMixList() {
+  const selected = document.querySelectorAll('#mix .mix-item.selected');
+  if (selected.length === 0) { alert(t('alertNoItems')); return; }
+  const keys = Array.from(selected).map(el => el.dataset.key);
+  const fakeItem = { shopping: keys };
+  const shopping = collectShopping([fakeItem]);
+  document.getElementById('mixShoppingOutput').innerHTML = renderShoppingHtml(shopping);
+  document.getElementById('masterShopping').innerHTML = renderShoppingHtml(shopping);
+}
+
+// ============ INIT ============
+renderRecipes();
+renderMixItems();
+</script>
+</body>
+</html>
